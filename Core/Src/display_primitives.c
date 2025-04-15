@@ -398,22 +398,22 @@ void DP_FillEllipse(uint8_t Xpos, uint8_t Ypos, uint8_t XRadius, uint8_t YRadius
   * @param  percentage - battery charge state from 0 (empty) to 10 (full)
   * @retval None
   */
-void PaintBatteryIndicator(uint8_t percentage)
+void DP_PaintBatteryIndicator(uint8_t percentage)
 {
-	uint8_t BatteryBorder[12] = {0x3C,0x66,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x7E};
+	uint8_t BatteryBorder[12] = {0x7E,0xC3,0x81,0x81,0x81,0x81,0x81,0x81,0x81,0x81,0x81,0xFF};
 	// fill indicator by percentage
 	for(uint8_t i = 0; i < percentage; i++)
 	{
 		if(i < 9)
 		{
-			BatteryBorder[10-i] |= 0x3C;
+			BatteryBorder[10-i] |= 0x7E;
 		}
 		else
 		{
-			BatteryBorder[10-i] |= 0x18;
+			BatteryBorder[10-i] |= 0x3C;
 		}
 	}
-	DP_DrawBitmap(BatteryBorder, LCDWIDTH-20, 0, 12, 6);
+	DP_DrawBitmap(BatteryBorder, LCDWIDTH-20, 0, 12, 8);
 }
 
 /**

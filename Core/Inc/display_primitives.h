@@ -54,6 +54,6 @@ void DP_DrawRect(uint8_t x_pos, uint8_t y_pos,uint8_t width, uint8_t height);
 void DP_FillRect(uint8_t x_pos, uint8_t y_pos,uint8_t width, uint8_t height);
 void DP_FillCircle(uint8_t Xpos, uint8_t Ypos, uint8_t Radius);
 void DP_FillEllipse(uint8_t Xpos, uint8_t Ypos, uint8_t XRadius, uint8_t YRadius);
-void PaintBatteryIndicator(uint8_t percentage);
+void DP_PaintBatteryIndicator(uint8_t percentage);
 
 #endif /* INC_DISPLAY_PRIMITIVES_H_ */

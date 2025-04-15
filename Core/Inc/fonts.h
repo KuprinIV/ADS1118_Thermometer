@@ -22,7 +22,6 @@ typedef struct
 }FontInfo;
 
 extern FontInfo font6x8;
-extern FontInfo MSSanSerif_14;
-extern FontInfo MSSanSerif_18;
+extern FontInfo MSSanSerif_20;
 
 #endif /* INC_FONTS_H_ */

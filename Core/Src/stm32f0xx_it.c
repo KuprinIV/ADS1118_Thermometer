@@ -55,9 +55,7 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern DMA_HandleTypeDef hdma_adc;
-extern SPI_HandleTypeDef hspi1;
-extern TIM_HandleTypeDef htim14;
+
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -129,7 +127,7 @@ void SysTick_Handler(void)
   /* USER CODE BEGIN SysTick_IRQn 0 */
 
   /* USER CODE END SysTick_IRQn 0 */
-  HAL_IncTick();
+
   /* USER CODE BEGIN SysTick_IRQn 1 */
 
   /* USER CODE END SysTick_IRQn 1 */
@@ -148,9 +146,37 @@ void SysTick_Handler(void)
 void DMA1_Channel1_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
+  /* Check whether DMA transfer complete caused the DMA interruption */
+  if(LL_DMA_IsActiveFlag_TC1(DMA1) == 1)
+  {
+	/* Clear flag DMA transfer complete */
+	LL_DMA_ClearFlag_TC1(DMA1);
 
+	/* Call interruption treatment function */
+	AdcDmaTransferComplete_Callback();
+  }
+
+  /* Check whether DMA half transfer caused the DMA interruption */
+  if(LL_DMA_IsActiveFlag_HT1(DMA1) == 1)
+  {
+	/* Clear flag DMA half transfer */
+	LL_DMA_ClearFlag_HT1(DMA1);
+
+	/* Call interruption treatment function */
+//	AdcDmaTransferHalf_Callback();
+  }
+
+  /* Check whether DMA transfer error caused the DMA interruption */
+  if(LL_DMA_IsActiveFlag_TE1(DMA1) == 1)
+  {
+	/* Clear flag DMA transfer error */
+	LL_DMA_ClearFlag_TE1(DMA1);
+
+	/* Call interruption treatment function */
+//	AdcDmaTransferError_Callback();
+  }
   /* USER CODE END DMA1_Channel1_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc);
+
   /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
 
   /* USER CODE END DMA1_Channel1_IRQn 1 */
@@ -162,9 +188,12 @@ void DMA1_Channel1_IRQHandler(void)
 void TIM14_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM14_IRQn 0 */
-
+	if(LL_TIM_IsActiveFlag_UPDATE(TIM14) == 1)
+	{
+		LL_TIM_ClearFlag_UPDATE(TIM14);
+		HAL_TIM_PeriodElapsedCallback();
+	}
   /* USER CODE END TIM14_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim14);
   /* USER CODE BEGIN TIM14_IRQn 1 */
 
   /* USER CODE END TIM14_IRQn 1 */
@@ -178,7 +207,6 @@ void SPI1_IRQHandler(void)
   /* USER CODE BEGIN SPI1_IRQn 0 */
 
   /* USER CODE END SPI1_IRQn 0 */
-  HAL_SPI_IRQHandler(&hspi1);
   /* USER CODE BEGIN SPI1_IRQn 1 */
 
   /* USER CODE END SPI1_IRQn 1 */

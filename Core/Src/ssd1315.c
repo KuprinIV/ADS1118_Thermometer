@@ -6,7 +6,14 @@
  */
 
 #include "ssd1315.h"
+#include "stm32f0xx_ll_utils.h"
+#include "stm32f0xx_ll_i2c.h"
+#include "stm32f0xx_ll_cortex.h"
 #include <string.h>
+
+#define I2C_SEND_TIMEOUT_TXIS_MS      	5
+#define I2C_SEND_TIMEOUT_SB_MS        	5
+#define I2C_SEND_TIMEOUT_ADDR_MS      	5
 
 // low-level display functions
 static void SSD1315_SetColumnStartAddressInPAM(uint8_t start_addr);
@@ -44,8 +51,6 @@ static void SSD1315_ZoomInModeCtrl(uint8_t is_enabled);
 static void SSD1315_write_command(uint8_t cmd, uint8_t* cmd_data, uint8_t cmd_data_length);
 static void SSD1315_write_data(uint8_t* data, uint16_t data_length);
 
-extern I2C_HandleTypeDef hi2c1;
-
 /**
  * @brief Init SSD1315 OLED controller
  * @param None
@@ -53,24 +58,21 @@ extern I2C_HandleTypeDef hi2c1;
  */
 void SSD1315_Init(void)
 {
-	HAL_Delay(50); // wait at least 20 ms
-	// check is I2C device on bus
-	if(HAL_I2C_IsDeviceReady(&hi2c1, DEVICE_ADDR, 3, 100) == HAL_OK)
-	{
-		// set horizontal memory addressing mode
-		SSD1315_SetMemoryAddressingMode(0);
-		// set column start and end address: from 0 to 127
-		SSD1315_SetColumnAddressRange(0, 127);
-		// set page start and end address: from 0 to 7
-		SSD1315_SetPageAddressRange(0, 7);
-		// set charge pump output to 7,5 V
-		SSD1315_SetChargePump(1, 0);
-		// remap columns
-		SSD1315_SetDisplaySegmentsRemap(1);
+	LL_mDelay(50); // wait at least 20 ms
 
-		// enable display
-		SSD1315_SetDisplayOnOff(1);
-	}
+	// set horizontal memory addressing mode
+	SSD1315_SetMemoryAddressingMode(0);
+	// set column start and end address: from 0 to 127
+	SSD1315_SetColumnAddressRange(0, 127);
+	// set page start and end address: from 0 to 7
+	SSD1315_SetPageAddressRange(0, 7);
+	// set charge pump output to 7,5 V
+	SSD1315_SetChargePump(1, 0);
+	// remap columns
+	SSD1315_SetDisplaySegmentsRemap(1);
+
+	// enable display
+	SSD1315_SetDisplayOnOff(1);
 }
 
 /**
@@ -526,7 +528,9 @@ static void SSD1315_ZoomInModeCtrl(uint8_t is_enabled)
  */
 static void SSD1315_write_command(uint8_t cmd, uint8_t* cmd_data, uint8_t cmd_data_length)
 {
+	uint32_t timeout = I2C_SEND_TIMEOUT_TXIS_MS;
 	uint8_t data[16] = {0};
+	uint8_t* pData = data;
 	uint8_t control_byte = 0x80; // control byte: Co bit is set to "1", D/C# bit is set to "0"
 	// store command code
 	data[0] = control_byte;
@@ -542,7 +546,34 @@ static void SSD1315_write_command(uint8_t cmd, uint8_t* cmd_data, uint8_t cmd_da
 		}
 	}
 	// send data to display
-	HAL_I2C_Master_Transmit(&hi2c1, DEVICE_ADDR, data, 2*(cmd_data_length+1), 1000);
+	LL_I2C_HandleTransfer(I2C1, DEVICE_ADDR, LL_I2C_ADDRSLAVE_7BIT, 2*(cmd_data_length+1), LL_I2C_MODE_AUTOEND, LL_I2C_GENERATE_START_WRITE);
+
+	/* Loop until STOP flag is raised  */
+	while(!LL_I2C_IsActiveFlag_STOP(I2C1))
+	{
+	    /* (2.1) Transmit data (TXIS flag raised) *********************************/
+
+	    /* Check TXIS flag value in ISR register */
+	    if(LL_I2C_IsActiveFlag_TXIS(I2C1))
+	    {
+	      /* Write data in Transmit Data register.
+	      TXIS flag is cleared by writing data in TXDR register */
+	      LL_I2C_TransmitData8(I2C1, (*pData++));
+
+	      timeout = I2C_SEND_TIMEOUT_TXIS_MS;
+	      /* Check Systick counter flag to decrement the time-out value */
+	      if (LL_SYSTICK_IsActiveCounterFlag())
+	      {
+	        if(timeout-- == 0)
+	        {
+	          /* Time-out occurred. Set LED2 to blinking mode */
+	        }
+	      }
+	    }
+	}
+
+	/* End of I2C_SlaveReceiver_MasterTransmitter Process */
+	LL_I2C_ClearFlag_STOP(I2C1);
 }
 
 /**
@@ -555,6 +586,68 @@ static void SSD1315_write_data(uint8_t* data, uint16_t data_length)
 {
 	// init control byte
 	uint8_t control_byte = 0x40; // control byte: Co bit is set to "0", D/C# bit is set to "1 "
+	uint16_t index = 0;
+	uint8_t is_control_byte_sent = 0;
+	uint32_t timeout = I2C_SEND_TIMEOUT_TXIS_MS;
+
+	uint16_t data_cntr = data_length+1;
+	uint32_t max_len = 255;
+
 	// send data to display
-	HAL_I2C_Mem_Write(&hi2c1, DEVICE_ADDR, control_byte, 1, data, data_length, 1000);
+	LL_I2C_HandleTransfer(I2C1, DEVICE_ADDR, LL_I2C_ADDRSLAVE_7BIT, max_len, LL_I2C_MODE_RELOAD, LL_I2C_GENERATE_START_WRITE);
+
+	/* Loop until STOP flag is raised  */
+	while(data_cntr > 0)
+	{
+	    /* (2.1) Transmit data (TXIS flag raised) *********************************/
+
+	    /* Check TXIS flag value in ISR register */
+	    if(LL_I2C_IsActiveFlag_TXIS(I2C1) && max_len > 0)
+	    {
+	      /* Write data in Transmit Data register.
+	      TXIS flag is cleared by writing data in TXDR register */
+	      if(is_control_byte_sent)
+	      {
+	    	  LL_I2C_TransmitData8(I2C1, data[index++]);
+	      }
+	      else
+	      {
+	    	  LL_I2C_TransmitData8(I2C1, control_byte);
+	    	  is_control_byte_sent = 1;
+	      }
+
+	      timeout = I2C_SEND_TIMEOUT_TXIS_MS;
+	      /* Check Systick counter flag to decrement the time-out value */
+	      if (LL_SYSTICK_IsActiveCounterFlag())
+	      {
+	        if(timeout-- == 0)
+	        {
+	          /* Time-out occurred. Set LED2 to blinking mode */
+	        }
+	      }
+
+	      data_cntr--;
+	      max_len--;
+	    }
+
+		if(data_cntr > 0 && max_len == 0)
+		{
+		  if(LL_I2C_IsActiveFlag_TCR(I2C1))
+		  {
+			  if(data_cntr > 255)
+			  {
+				  max_len = 255;
+				  LL_I2C_HandleTransfer(I2C1, DEVICE_ADDR, LL_I2C_ADDRSLAVE_7BIT, max_len, LL_I2C_MODE_RELOAD, LL_I2C_GENERATE_NOSTARTSTOP);
+			  }
+			  else
+			  {
+				  max_len = data_cntr;
+				  LL_I2C_HandleTransfer(I2C1, DEVICE_ADDR, LL_I2C_ADDRSLAVE_7BIT, max_len, LL_I2C_MODE_AUTOEND, LL_I2C_GENERATE_NOSTARTSTOP);
+			  }
+		  }
+		}
+	}
+
+	/* End of I2C_SlaveReceiver_MasterTransmitter Process */
+	LL_I2C_ClearFlag_STOP(I2C1);
 }

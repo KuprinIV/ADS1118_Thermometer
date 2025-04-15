@@ -63,15 +63,15 @@ void RefreshWindow(void)
 static int DisplayMainWindow(pWindow wnd, pData data, Action item_action, Action value_action)
 {
 	static uint8_t bat_charge;
-	const char* delim[1] = {" oC"};
+	const char* delim[1] = {" ~C"}; // '~' is replaced by '°' symbol in font bitmaps array
 
 	// show firmware version and release date
 	printInteger(wnd->strings[0].Text, "", (int*)&data->thermocouple_temp, delim, 1);
 
     wnd->strings[0].x_pos = 1;
-    wnd->strings[0].y_pos = 25;
+    wnd->strings[0].y_pos = 20;
     wnd->strings[0].align = AlignCenter;
-    wnd->strings[0].font = MSSanSerif_14;
+    wnd->strings[0].font = MSSanSerif_20;
     wnd->strings[0].inverted = NotInverted;
 
 	wnd->StringsQuantity = 1;
@@ -103,6 +103,6 @@ static int DisplayMainWindow(pWindow wnd, pData data, Action item_action, Action
 		}
 	}
 
-	PaintBatteryIndicator(bat_charge);
+	DP_PaintBatteryIndicator(bat_charge);
 	return 0;
 }

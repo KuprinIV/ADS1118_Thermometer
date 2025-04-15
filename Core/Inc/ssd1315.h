@@ -8,7 +8,7 @@
 #ifndef INC_SSD1315_H_
 #define INC_SSD1315_H_
 
-#include "stm32f0xx_hal.h"
+#include <stdint.h>
 
 #define DEVICE_ADDR						0x78
 

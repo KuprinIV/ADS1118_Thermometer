@@ -8,16 +8,13 @@
 #include "ads1118.h"
 #include <string.h>
 
-static void ADS1118_TransmitData(uint16_t conf_reg);
-static void ADS1118_TransmitReceiveData(uint16_t conf_reg, uint32_t* data);
+static uint8_t ADS1118_TransmitReceiveData(uint16_t conf_reg, int16_t* data);
 static int16_t ADS1118_ConvertTSensorData(int16_t raw_data);
 static int16_t ADS1118_ConvertThermocoupleData(int16_t raw_data);
 
-extern SPI_HandleTypeDef hspi1;
 extern Data dev_state;
 static union ADS1118_ConfigReg ads1118_conf;
 static uint8_t adc_mode = 0; // 0 - ADC mode, 1 - temperature sensor mode
-static uint32_t ads1118_read_value = 0;
 
 /**
   * @brief  Initialize ADS1118 ADC and start conversion
@@ -26,6 +23,7 @@ static uint32_t ads1118_read_value = 0;
   */
 void ADS1118_Init(void)
 {
+	int16_t temp_data = 0;
 	// set ADS1118 configuration
 	ads1118_conf.config.mux = MUX_AINP_AIN0_AINN_AIN1;
 	ads1118_conf.config.pga = PGA_FS_6_144V;
@@ -36,37 +34,21 @@ void ADS1118_Init(void)
 	ads1118_conf.config.nop = NOP_UPD_CONF_REG;
 	ads1118_conf.config.op_status = 1; // begin a single conversion
 
-	ADS1118_TransmitData(ads1118_conf.reg_value);
-}
-
-/**
-  * @brief  Write configuration register data to ADS1118 by SPI
-  * @param  conf_reg - configuration register value
-  * @retval none
-  */
-static void ADS1118_TransmitData(uint16_t conf_reg)
-{
-	uint8_t reg_data_write[4] = {0};
-
-	// fill transmit data
-	reg_data_write[0] = ((conf_reg>>8)  & 0xFF);
-	reg_data_write[1] = (conf_reg & 0xFF);
-	reg_data_write[2] = reg_data_write[0];
-	reg_data_write[3] = reg_data_write[1];
-
-	// send data to IC by SPI
-	HAL_SPI_Transmit_IT(&hspi1, reg_data_write, 4);
+	// start first conversion
+	ADS1118_TransmitReceiveData(ads1118_conf.reg_value, &temp_data); // temp_data value is ignored
 }
 
 /**
   * @brief  Write configuration register data and read previous conversion data from ADS1118 by SPI
   * @param  conf_reg - configuration register value
   * @param  data - read data value pointer (upper 16 bit are conversion result, lower 16 bit - configuration register value)
-  * @retval none
+  * @retval 0 - data isn't ready, 1 - data is ready
   */
-static void ADS1118_TransmitReceiveData(uint16_t conf_reg, uint32_t* data)
+static uint8_t ADS1118_TransmitReceiveData(uint16_t conf_reg, int16_t* data)
 {
 	uint8_t reg_data_write[4] = {0};
+	uint8_t reg_data_read[4] = {0};
+	union ADS1118_ConfigReg ads_conf_reg;
 
 	// fill transmit data
 	reg_data_write[0] = ((conf_reg>>8)  & 0xFF);
@@ -74,7 +56,26 @@ static void ADS1118_TransmitReceiveData(uint16_t conf_reg, uint32_t* data)
 	reg_data_write[2] = reg_data_write[0];
 	reg_data_write[3] = reg_data_write[1];
 
-	HAL_SPI_TransmitReceive_IT(&hspi1, reg_data_write, (uint8_t*)&ads1118_read_value, 4);
+	// SPI data transfer
+	LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_4);
+	for(uint8_t i = 0; i < 4; i++)
+	{
+		while(!LL_SPI_IsActiveFlag_TXE(SPI1)) {}
+		LL_SPI_TransmitData8(SPI1, reg_data_write[i]);
+
+		while(!LL_SPI_IsActiveFlag_RXNE(SPI1)) {}
+		reg_data_read[i] = LL_SPI_ReceiveData8(SPI1);
+	}
+	LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_4);
+
+	// check is configuration register is written correctly
+	ads_conf_reg.reg_value = (uint16_t)((reg_data_read[2]<<8)|reg_data_read[3]);
+	if(ads_conf_reg.config.nop == NOP_UPD_CONF_REG) // data is valid
+	{
+		*data = (int16_t)((reg_data_read[0]<<8)|reg_data_read[1]);
+	}
+
+	return (ads_conf_reg.config.cnv_rdy_flag^0x01);
 }
 
 /**
@@ -99,40 +100,31 @@ static int16_t ADS1118_ConvertThermocoupleData(int16_t raw_data)
 }
 
 /**
-  * @brief  Rx Transfer completed callback.
-  * @param  hspi pointer to a SPI_HandleTypeDef structure that contains
-  *               the configuration information for SPI module.
+  * @brief  Read data from ADS1118
+  * @param  data - data structure pointer with device parameters
   * @retval None
   */
-void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
+void ADS1118_ReadData(pData data)
 {
-	uint16_t data_val = 0;
-	union ADS1118_ConfigReg conf_reg;
+	int16_t data_val = 0;
+	uint8_t is_data_ready = 0;
 
-	if(hspi->Instance == SPI1)
+	adc_mode ^= 0x01; // toggle ADC mode
+	ads1118_conf.config.ts_mode = adc_mode; // update TS mode in config register
+
+	// read data of previous conversion from ADS1118 and write config register
+	is_data_ready = ADS1118_TransmitReceiveData(ads1118_conf.reg_value, &data_val);
+
+	if(is_data_ready)
 	{
-		// assume that ADS1118 read value is updated
-		data_val = (uint16_t)((ads1118_read_value>>16) & 0xFFFF);
-		conf_reg.reg_value = (uint16_t)(ads1118_read_value & 0xFFFF);
-
-		// check NOP bits
-		if(conf_reg.config.nop == NOP_UPD_CONF_REG) // data is valid
+		// set data type
+		if(adc_mode) // we've read ADC thermocouple voltage
 		{
-			if(adc_mode == 0) // we've read ADC thermocouple voltage
-			{
-				dev_state.thermocouple_temp = ADS1118_ConvertThermocoupleData(data_val);
-			}
-			else // we've read temperature sensor data
-			{
-				dev_state.room_temp = ADS1118_ConvertTSensorData((int16_t)data_val);
-			}
+			dev_state.thermocouple_temp = ADS1118_ConvertThermocoupleData(data_val);
 		}
-
-		// start new conversion
-		adc_mode ^= 0x01; // toggle ADC mode
-		ads1118_conf.config.ts_mode = adc_mode; // update TS mode in config register
-		ADS1118_TransmitReceiveData(ads1118_conf.reg_value, &ads1118_read_value);
+		else // we've read temperature sensor data
+		{
+			dev_state.room_temp = ADS1118_ConvertTSensorData(data_val);
+		}
 	}
 }
-
-
