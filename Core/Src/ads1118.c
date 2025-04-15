@@ -49,6 +49,7 @@ static uint8_t ADS1118_TransmitReceiveData(uint16_t conf_reg, int16_t* data)
 	uint8_t reg_data_write[4] = {0};
 	uint8_t reg_data_read[4] = {0};
 	union ADS1118_ConfigReg ads_conf_reg;
+	uint8_t is_data_ready = 0;
 
 	// fill transmit data
 	reg_data_write[0] = ((conf_reg>>8)  & 0xFF);
@@ -70,12 +71,13 @@ static uint8_t ADS1118_TransmitReceiveData(uint16_t conf_reg, int16_t* data)
 
 	// check is configuration register is written correctly
 	ads_conf_reg.reg_value = (uint16_t)((reg_data_read[2]<<8)|reg_data_read[3]);
-	if(ads_conf_reg.config.nop == NOP_UPD_CONF_REG) // data is valid
+	if(ads_conf_reg.config.nop == NOP_UPD_CONF_REG && ads_conf_reg.config.cnv_rdy_flag == 0) // data is valid and ready
 	{
 		*data = (int16_t)((reg_data_read[0]<<8)|reg_data_read[1]);
+		is_data_ready = 1;
 	}
 
-	return (ads_conf_reg.config.cnv_rdy_flag^0x01);
+	return is_data_ready;
 }
 
 /**
