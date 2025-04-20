@@ -91,16 +91,7 @@ static int DisplayMainWindow(pWindow wnd, pData data, Action item_action, Action
 	}
 	else
 	{
-		if(data->vbat_mv < VBAT_LOW_MV)
-		{
-			bat_charge = 0;
-		}
-		else
-		{
-			bat_charge = 10*(data->vbat_mv - VBAT_LOW_MV)/(VBAT_FULL_MV - VBAT_LOW_MV);
-			if(bat_charge > 10) bat_charge = 10;
-			if(bat_charge > 128) bat_charge = 0;
-		}
+		bat_charge = getBatteryCharge(data->vbat_mv);
 	}
 
 	DP_PaintBatteryIndicator(bat_charge);

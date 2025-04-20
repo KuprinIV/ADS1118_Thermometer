@@ -135,7 +135,6 @@ int main(void)
 
   // init ADS1118 ADC and start first conversion
   ADS1118_Init();
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -165,7 +164,7 @@ int main(void)
 
 				  case LongPressed:
 					  // make power off
-	//				  PowerOff();
+					  PowerOff();
 					  break;
 			  }
 		  }
@@ -626,6 +625,8 @@ void AdcDmaTransferComplete_Callback()
   */
 static void PowerOff(void)
 {
+	DP_ClearBuffer();
+	DP_UpdateBuffer();
 	SSD1315_DisplayOnOff(0);
 	DEV_PowerCtrl(0);
 	LL_PWR_SetPowerMode(LL_PWR_MODE_STANDBY);

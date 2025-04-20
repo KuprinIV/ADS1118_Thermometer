@@ -7,6 +7,8 @@
 #include "device.h"
 
 Data dev_state = {0, 0, 0};
+uint16_t bat_discharge_curve[2][11] = {{10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0},
+		{4200, 4050, 4010, 3980, 3920, 3850, 3800, 3760, 3660, 3550, 3460}};
 
 /**
  * @brief Device power control
@@ -82,4 +84,34 @@ ChargeState DEV_GetChargeState(void)
 		res = Charging;
 	}
 	return res;
+}
+
+/**
+ * @brief Get battery charge from 0 (empty) to 10 (full) range
+ * @param bat_mv - battery voltage in mV
+ * @retval battery charge from 0 (empty) to 10 (full) range
+ */
+uint8_t getBatteryCharge(uint32_t bat_mv)
+{
+	uint8_t index_val = 0;
+	// get nearest voltage value index from battery discharge curve
+	for(uint8_t i = 1; i < 11; i++)
+	{
+		if(bat_mv >= bat_discharge_curve[1][i] && bat_mv < bat_discharge_curve[1][i-1])
+		{
+			index_val = i-1;
+			break;
+		}
+		else if(bat_mv < bat_discharge_curve[1][10])
+		{
+			index_val = 10;
+			break;
+		}
+		else if(bat_mv >= bat_discharge_curve[1][0])
+		{
+			index_val = 0;
+			break;
+		}
+	}
+	return (uint8_t)bat_discharge_curve[0][index_val];
 }
