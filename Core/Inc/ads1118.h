@@ -13,15 +13,15 @@
 
 typedef struct
 {
-	unsigned op_status : 1;
-	unsigned mux : 3;
-	unsigned pga : 3;
-	unsigned mode : 1;
-	unsigned data_rate : 3;
-	unsigned ts_mode : 1;
-	unsigned pull_up_en : 1;
-	unsigned nop : 2;
 	unsigned cnv_rdy_flag : 1;
+	unsigned nop : 2;
+	unsigned pull_up_en : 1;
+	unsigned ts_mode : 1;
+	unsigned data_rate : 3;
+	unsigned mode : 1;
+	unsigned pga : 3;
+	unsigned mux : 3;
+	unsigned op_status : 1;
 }ADS1118_Config;
 
 union ADS1118_ConfigReg
@@ -62,6 +62,8 @@ union ADS1118_ConfigReg
 #define TS_MODE						0x01
 
 #define NOP_UPD_CONF_REG			0x01
+
+#define FULL_SCALE_ADC				32768
 
 void ADS1118_Init(void);
 void ADS1118_ReadData(pData data);

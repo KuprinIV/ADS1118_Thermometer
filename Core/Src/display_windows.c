@@ -64,9 +64,10 @@ static int DisplayMainWindow(pWindow wnd, pData data, Action item_action, Action
 {
 	static uint8_t bat_charge;
 	const char* delim[1] = {" ~C"}; // '~' is replaced by '°' symbol in font bitmaps array
+	int temp_val = (int)data->thermocouple_temp;
 
 	// show firmware version and release date
-	printInteger(wnd->strings[0].Text, "", (int*)&data->thermocouple_temp, delim, 1);
+	printInteger(wnd->strings[0].Text, "", &temp_val, delim, 1);
 
     wnd->strings[0].x_pos = 1;
     wnd->strings[0].y_pos = 20;

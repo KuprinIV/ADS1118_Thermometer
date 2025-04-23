@@ -15,6 +15,7 @@ static int16_t ADS1118_ConvertThermocoupleData(int16_t raw_data);
 extern Data dev_state;
 static union ADS1118_ConfigReg ads1118_conf;
 static uint8_t adc_mode = 0; // 0 - ADC mode, 1 - temperature sensor mode
+static int16_t full_scale_pga_mv[8] = {6144, 4096, 2048, 1024, 512, 256, 256, 256};
 
 /**
   * @brief  Initialize ADS1118 ADC and start conversion
@@ -26,8 +27,8 @@ void ADS1118_Init(void)
 	int16_t temp_data = 0;
 	// set ADS1118 configuration
 	ads1118_conf.config.mux = MUX_AINP_AIN0_AINN_AIN1;
-	ads1118_conf.config.pga = PGA_FS_6_144V;
-	ads1118_conf.config.mode = 0; // power-down single-shot mode
+	ads1118_conf.config.pga = PGA_FS_4_096V;
+	ads1118_conf.config.mode = 1; // power-down single-shot mode
 	ads1118_conf.config.data_rate = DR_128SPS;
 	ads1118_conf.config.ts_mode = adc_mode;
 	ads1118_conf.config.pull_up_en = 1; // enable DOUT pin pull-up resistor
@@ -54,8 +55,8 @@ static uint8_t ADS1118_TransmitReceiveData(uint16_t conf_reg, int16_t* data)
 	// fill transmit data
 	reg_data_write[0] = ((conf_reg>>8)  & 0xFF);
 	reg_data_write[1] = (conf_reg & 0xFF);
-	reg_data_write[2] = reg_data_write[0];
-	reg_data_write[3] = reg_data_write[1];
+	reg_data_write[2] = 0xFF;
+	reg_data_write[3] = 0xFF;
 
 	// SPI data transfer
 	LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_4);
@@ -64,6 +65,8 @@ static uint8_t ADS1118_TransmitReceiveData(uint16_t conf_reg, int16_t* data)
 		while(!LL_SPI_IsActiveFlag_TXE(SPI1)) {}
 		LL_SPI_TransmitData8(SPI1, reg_data_write[i]);
 
+		while(LL_SPI_IsActiveFlag_BSY(SPI1)) {}
+
 		while(!LL_SPI_IsActiveFlag_RXNE(SPI1)) {}
 		reg_data_read[i] = LL_SPI_ReceiveData8(SPI1);
 	}
@@ -71,7 +74,8 @@ static uint8_t ADS1118_TransmitReceiveData(uint16_t conf_reg, int16_t* data)
 
 	// check is configuration register is written correctly
 	ads_conf_reg.reg_value = (uint16_t)((reg_data_read[2]<<8)|reg_data_read[3]);
-	if(ads_conf_reg.config.nop == NOP_UPD_CONF_REG && ads_conf_reg.config.cnv_rdy_flag == 0) // data is valid and ready
+
+	if(ads_conf_reg.config.nop == NOP_UPD_CONF_REG /*&& ads_conf_reg.config.cnv_rdy_flag == 0*/) // data is valid and ready
 	{
 		*data = (int16_t)((reg_data_read[0]<<8)|reg_data_read[1]);
 		is_data_ready = 1;
@@ -98,7 +102,8 @@ static int16_t ADS1118_ConvertTSensorData(int16_t raw_data)
   */
 static int16_t ADS1118_ConvertThermocoupleData(int16_t raw_data)
 {
-	return raw_data; // TODO: need to convert to °C
+	int16_t res = (int16_t)((int32_t)full_scale_pga_mv[ads1118_conf.config.pga]*raw_data/FULL_SCALE_ADC); // get voltage value in mV
+	return res; // TODO: need to convert to °C
 }
 
 /**
