@@ -91,7 +91,7 @@ ChargeState DEV_GetChargeState(void)
  * @param bat_mv - battery voltage in mV
  * @retval battery charge from 0 (empty) to 10 (full) range
  */
-uint8_t getBatteryCharge(uint32_t bat_mv)
+uint8_t DEV_GetBatteryCharge(uint32_t bat_mv)
 {
 	uint8_t index_val = 0;
 	// get nearest voltage value index from battery discharge curve

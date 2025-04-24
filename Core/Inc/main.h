@@ -70,7 +70,8 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void HAL_TIM_PeriodElapsedCallback();
+void AdcDmaTransferComplete_Callback();
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

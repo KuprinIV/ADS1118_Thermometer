@@ -63,19 +63,28 @@ void RefreshWindow(void)
 static int DisplayMainWindow(pWindow wnd, pData data, Action item_action, Action value_action)
 {
 	static uint8_t bat_charge;
-	const char* delim[1] = {" ~C"}; // '~' is replaced by '°' symbol in font bitmaps array
+	const char* delim[1] = {/*" ~C"*/""}; // '~' is replaced by '°' symbol in font bitmaps array
 	int temp_val = (int)data->thermocouple_temp;
+	int room_temp_val = (int)data->room_temp;
 
 	// show firmware version and release date
 	printInteger(wnd->strings[0].Text, "", &temp_val, delim, 1);
 
-    wnd->strings[0].x_pos = 1;
-    wnd->strings[0].y_pos = 20;
+    wnd->strings[0].x_pos = 0;
+    wnd->strings[0].y_pos = 10;
     wnd->strings[0].align = AlignCenter;
     wnd->strings[0].font = MSSanSerif_20;
     wnd->strings[0].inverted = NotInverted;
 
-	wnd->StringsQuantity = 1;
+	printInteger(wnd->strings[1].Text, "", &room_temp_val, delim, 1);
+
+    wnd->strings[1].x_pos = 0;
+    wnd->strings[1].y_pos = 37;
+    wnd->strings[1].align = AlignCenter;
+    wnd->strings[1].font = MSSanSerif_20;
+    wnd->strings[1].inverted = NotInverted;
+
+	wnd->StringsQuantity = 2;
 	DP_SetWindow(wnd);
 
 	// draw battery charge
@@ -92,7 +101,7 @@ static int DisplayMainWindow(pWindow wnd, pData data, Action item_action, Action
 	}
 	else
 	{
-		bat_charge = getBatteryCharge(data->vbat_mv);
+		bat_charge = DEV_GetBatteryCharge(data->vbat_mv);
 	}
 
 	DP_PaintBatteryIndicator(bat_charge);

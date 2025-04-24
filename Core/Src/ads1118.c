@@ -91,8 +91,9 @@ static uint8_t ADS1118_TransmitReceiveData(uint16_t conf_reg, int16_t* data)
   */
 static int16_t ADS1118_ConvertTSensorData(int16_t raw_data)
 {
-	int16_t temp_sensor = (raw_data>>7); // 14-bit value with 1/32 °C step
-	return temp_sensor;
+//	int16_t temp_sensor = (raw_data>>7); // 14-bit value with 1/32 °C step
+//	return temp_sensor;
+	return (raw_data>>2);
 }
 
 /**
@@ -102,8 +103,9 @@ static int16_t ADS1118_ConvertTSensorData(int16_t raw_data)
   */
 static int16_t ADS1118_ConvertThermocoupleData(int16_t raw_data)
 {
-	int16_t res = (int16_t)((int32_t)full_scale_pga_mv[ads1118_conf.config.pga]*raw_data/FULL_SCALE_ADC); // get voltage value in mV
-	return res; // TODO: need to convert to °C
+//	int16_t res = (int16_t)((int32_t)full_scale_pga_mv[ads1118_conf.config.pga]*raw_data/FULL_SCALE_ADC); // get voltage value in mV
+//	return res; // TODO: need to convert to °C
+	return raw_data;
 }
 
 /**

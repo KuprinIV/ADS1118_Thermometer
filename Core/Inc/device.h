@@ -27,7 +27,7 @@ typedef struct
 void DEV_PowerCtrl(uint8_t is_on);
 uint8_t DEV_ScanBtn(ButtonState* bs);
 ChargeState DEV_GetChargeState(void);
-uint8_t getBatteryCharge(uint32_t bat_mv);
+uint8_t DEV_GetBatteryCharge(uint32_t bat_mv);
 
 
 #endif /* INC_DEVICE_H_ */
