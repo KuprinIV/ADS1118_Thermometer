@@ -256,10 +256,17 @@ static int getDigitsNum(int number)
 {
     int res_num = 0;
     int temp_num = number;
-    while(temp_num > 0)
+    if(number == 0)
     {
-        temp_num /= 10;
-        res_num++;
+    	res_num = 1;
+    }
+    else
+    {
+		while(temp_num > 0)
+		{
+			temp_num /= 10;
+			res_num++;
+		}
     }
     return res_num;
 }

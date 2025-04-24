@@ -15,11 +15,8 @@ static int DisplayMainWindow(pWindow wnd, pData data, Action item_action, Action
 // private variables
 static Window MainWnd;
 static pWindow CurrentWnd = &MainWnd;
-//static pWindow temp_wnd;
 
 extern Data dev_state;
-
-//static uint8_t level = 0;
 
 /**
   * @brief  Initialize interface windows
@@ -63,20 +60,30 @@ void RefreshWindow(void)
 static int DisplayMainWindow(pWindow wnd, pData data, Action item_action, Action value_action)
 {
 	static uint8_t bat_charge;
-	const char* delim[1] = {/*" ~C"*/""}; // '~' is replaced by '°' symbol in font bitmaps array
-	int temp_val = (int)data->thermocouple_temp;
-	int room_temp_val = (int)data->room_temp;
+	const char* delim[1] = {" ~C"}; // '~' is replaced by '°' symbol in font bitmaps array
+	int temp_val = (int)(data->thermocouple_temp + data->room_temp); // add room temperature value, because thermocouple shows relative heat
 
-	// show firmware version and release date
-	printInteger(wnd->strings[0].Text, "", &temp_val, delim, 1);
+	// check is thermocouple connected
+	if(data->is_thermocouple_connected)
+	{
+		printInteger(wnd->strings[0].Text, "", &temp_val, delim, 1); // show temperature value
+	}
+	else
+	{
+		printString(wnd->strings[0].Text, "", "---");
+	}
 
     wnd->strings[0].x_pos = 0;
-    wnd->strings[0].y_pos = 10;
+    wnd->strings[0].y_pos = 20;
     wnd->strings[0].align = AlignCenter;
     wnd->strings[0].font = MSSanSerif_20;
     wnd->strings[0].inverted = NotInverted;
 
+#ifdef IS_SHOW_ROOM_TEMP
+    int room_temp_val = (int)data->room_temp;
 	printInteger(wnd->strings[1].Text, "", &room_temp_val, delim, 1);
+
+	wnd->strings[0].y_pos = 10; // override string position
 
     wnd->strings[1].x_pos = 0;
     wnd->strings[1].y_pos = 37;
@@ -84,7 +91,11 @@ static int DisplayMainWindow(pWindow wnd, pData data, Action item_action, Action
     wnd->strings[1].font = MSSanSerif_20;
     wnd->strings[1].inverted = NotInverted;
 
-	wnd->StringsQuantity = 2;
+    wnd->StringsQuantity = 2;
+#else
+    wnd->StringsQuantity = 1;
+#endif
+
 	DP_SetWindow(wnd);
 
 	// draw battery charge

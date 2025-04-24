@@ -65,6 +65,11 @@ union ADS1118_ConfigReg
 
 #define FULL_SCALE_ADC				32768
 
+#define ROOM_TEMP_A_COEFF			2006
+#define ROOM_TEMP_B_COEFF			(-24615)
+#define ROOM_TEMP_OFFSET_COEFF		(-5)
+#define THERMOCOUPLE_COEFF			12600
+
 void ADS1118_Init(void);
 void ADS1118_ReadData(pData data);
 

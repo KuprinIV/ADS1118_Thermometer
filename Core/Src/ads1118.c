@@ -15,7 +15,7 @@ static int16_t ADS1118_ConvertThermocoupleData(int16_t raw_data);
 extern Data dev_state;
 static union ADS1118_ConfigReg ads1118_conf;
 static uint8_t adc_mode = 0; // 0 - ADC mode, 1 - temperature sensor mode
-static int16_t full_scale_pga_mv[8] = {6144, 4096, 2048, 1024, 512, 256, 256, 256};
+//static int16_t full_scale_pga_mv[8] = {6144, 4096, 2048, 1024, 512, 256, 256, 256};
 
 /**
   * @brief  Initialize ADS1118 ADC and start conversion
@@ -27,7 +27,7 @@ void ADS1118_Init(void)
 	int16_t temp_data = 0;
 	// set ADS1118 configuration
 	ads1118_conf.config.mux = MUX_AINP_AIN0_AINN_AIN1;
-	ads1118_conf.config.pga = PGA_FS_4_096V;
+	ads1118_conf.config.pga = PGA_FS_0_256V;
 	ads1118_conf.config.mode = 1; // power-down single-shot mode
 	ads1118_conf.config.data_rate = DR_128SPS;
 	ads1118_conf.config.ts_mode = adc_mode;
@@ -91,21 +91,23 @@ static uint8_t ADS1118_TransmitReceiveData(uint16_t conf_reg, int16_t* data)
   */
 static int16_t ADS1118_ConvertTSensorData(int16_t raw_data)
 {
-//	int16_t temp_sensor = (raw_data>>7); // 14-bit value with 1/32 °C step
-//	return temp_sensor;
-	return (raw_data>>2);
+	int32_t temp = (int32_t)(raw_data>>2)*ROOM_TEMP_A_COEFF + ROOM_TEMP_B_COEFF;
+	temp = (temp>>16) + ROOM_TEMP_OFFSET_COEFF;
+	return (int16_t)temp;
+//	return raw_data;
 }
 
 /**
   * @brief  Convert thermocouple voltage data of ADS1118 to °C
   * @param  raw_data - conversion result from ADS1118
-  * @retval temperature value in °C
+  * @retval temperature value in °C relative to ambient
   */
 static int16_t ADS1118_ConvertThermocoupleData(int16_t raw_data)
 {
-//	int16_t res = (int16_t)((int32_t)full_scale_pga_mv[ads1118_conf.config.pga]*raw_data/FULL_SCALE_ADC); // get voltage value in mV
-//	return res; // TODO: need to convert to °C
-	return raw_data;
+	int32_t temp = (int32_t)raw_data*THERMOCOUPLE_COEFF;
+	temp >>= 16;
+	return (int16_t)temp;
+//	return raw_data;
 }
 
 /**
@@ -129,6 +131,15 @@ void ADS1118_ReadData(pData data)
 		// set data type
 		if(adc_mode) // we've read ADC thermocouple voltage
 		{
+			// check is thermocouple connected
+			if(data_val > 10000)
+			{
+				dev_state.is_thermocouple_connected = 0;
+			}
+			else
+			{
+				dev_state.is_thermocouple_connected = 1;
+			}
 			dev_state.thermocouple_temp = ADS1118_ConvertThermocoupleData(data_val);
 		}
 		else // we've read temperature sensor data
