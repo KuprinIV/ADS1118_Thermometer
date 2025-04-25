@@ -13,6 +13,7 @@
 #define LONG_PRESS_TICKS		(1000/SCAN_PERIOD_MS)
 #define VBAT_LOW_MV				3450
 #define VBAT_FULL_MV			4200
+#define NUM_AVGS				5
 //#define IS_SHOW_ROOM_TEMP		1
 
 typedef enum {NotPressed = 0, Pressed = 1, LongPressed = 2} ButtonState;
@@ -30,6 +31,6 @@ void DEV_PowerCtrl(uint8_t is_on);
 uint8_t DEV_ScanBtn(ButtonState* bs);
 ChargeState DEV_GetChargeState(void);
 uint8_t DEV_GetBatteryCharge(uint32_t bat_mv);
-
+int16_t DEV_RoundTemperatureValue(int16_t temp_0t125);
 
 #endif /* INC_DEVICE_H_ */

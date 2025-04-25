@@ -61,7 +61,7 @@ static int DisplayMainWindow(pWindow wnd, pData data, Action item_action, Action
 {
 	static uint8_t bat_charge;
 	const char* delim[1] = {" ~C"}; // '~' is replaced by '°' symbol in font bitmaps array
-	int temp_val = (int)(data->thermocouple_temp + data->room_temp); // add room temperature value, because thermocouple shows relative heat
+	int temp_val = (int)DEV_RoundTemperatureValue(data->thermocouple_temp + data->room_temp); // add room temperature value, because thermocouple shows relative heat
 
 	// check is thermocouple connected
 	if(data->is_thermocouple_connected)

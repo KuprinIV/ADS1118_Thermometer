@@ -115,3 +115,45 @@ uint8_t DEV_GetBatteryCharge(uint32_t bat_mv)
 	}
 	return (uint8_t)bat_discharge_curve[0][index_val];
 }
+
+/**
+ * @brief Round temperature value from 0,125 °C steps to °C
+ * @param temp_0t125 - temperature value in 0,125 °C steps
+ * @retval rounded temperature value in °C
+ */
+int16_t DEV_RoundTemperatureValue(int16_t temp_0t125)
+{
+	int16_t res = 0;
+	int16_t frac = 0;
+	static int16_t samples_to_avg[NUM_AVGS];
+	static uint8_t index;
+	static uint8_t delay_cntr;
+
+	samples_to_avg[index++] = temp_0t125;
+	if(index == NUM_AVGS)
+	{
+		index = 0;
+	}
+
+	// calculate average value
+	for(uint8_t i = 0; i < NUM_AVGS; i++)
+	{
+		res += samples_to_avg[i];
+	}
+	res /= NUM_AVGS;
+
+	// add filter output delay to wait its stabilization
+	if(delay_cntr < 10)
+	{
+		res = temp_0t125;
+		delay_cntr++;
+	}
+
+	res >>= 3;
+
+	if(frac >= 0x04)
+	{
+		res++;
+	}
+	return res;
+}

@@ -87,12 +87,12 @@ static uint8_t ADS1118_TransmitReceiveData(uint16_t conf_reg, int16_t* data)
 /**
   * @brief  Convert temperature sensor data of ADS1118 to °C
   * @param  raw_data - conversion result from ADS1118
-  * @retval temperature value in °C
+  * @retval temperature value in 0,125 °C steps
   */
 static int16_t ADS1118_ConvertTSensorData(int16_t raw_data)
 {
 	int32_t temp = (int32_t)(raw_data>>2)*ROOM_TEMP_A_COEFF + ROOM_TEMP_B_COEFF;
-	temp = (temp>>16) + ROOM_TEMP_OFFSET_COEFF;
+	temp = (temp>>13) + ROOM_TEMP_OFFSET_COEFF;
 	return (int16_t)temp;
 //	return raw_data;
 }
@@ -100,12 +100,12 @@ static int16_t ADS1118_ConvertTSensorData(int16_t raw_data)
 /**
   * @brief  Convert thermocouple voltage data of ADS1118 to °C
   * @param  raw_data - conversion result from ADS1118
-  * @retval temperature value in °C relative to ambient
+  * @retval temperature value in 0,125 °C steps relative to ambient
   */
 static int16_t ADS1118_ConvertThermocoupleData(int16_t raw_data)
 {
 	int32_t temp = (int32_t)raw_data*THERMOCOUPLE_COEFF;
-	temp >>= 16;
+	temp >>= 13;
 	return (int16_t)temp;
 //	return raw_data;
 }
