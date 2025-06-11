@@ -149,6 +149,7 @@ int16_t DEV_RoundTemperatureValue(int16_t temp_0t125)
 		delay_cntr++;
 	}
 
+	frac = (res & 0x07);
 	res >>= 3;
 
 	if(frac >= 0x04)

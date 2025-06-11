@@ -171,7 +171,6 @@ int main(void)
 
 		  // get data from ADS1118
 		  ADS1118_ReadData(&dev_state);
-//		  dev_state.thermocouple_temp = 335; // test stub. TODO: add data output from ADS1118
 
 		  // update display
 		  RefreshWindow();
@@ -194,7 +193,7 @@ int main(void)
 		  if(dev_state.vbat_mv < VBAT_LOW_MV)
 		  {
 			  // make power off
-//			  PowerOff();
+			  PowerOff();
 		  }
 	  }
   }
